@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>3D Paris Fly-in</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Mapbox GL JS (3D globe + terrain) -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background: #0b1020; }
+    /* Center the map on the page */
+    .wrap {
+      height: 100%;
+      display: grid;
+      place-items: center;
+    }
+    #map {
+      width: min(100vw, 1200px);
+      height: min(100vh, 800px);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    }
+    .credit {
+      position: absolute;
+      z-index: 2;
+      right: 12px; bottom: 10px;
+      background: rgba(0,0,0,.45);
+      color: #fff; font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      padding: 6px 8px; border-radius: 8px;
+      backdrop-filter: blur(6px);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="map"></div>
+    <div class="credit">Data © OpenStreetMap, © Mapbox</div>
+  </div>
+
+  <script>
+    // 1) Replace with your Mapbox access token (https://account.mapbox.com/)
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWFnaWNraW5nIiwiYSI6ImNtaDZqZGJ5eTBkNXQybHM2aXBjc3M3M2kifQ.QLxS50QqNZ-SWl_hB7naFg';
+
+    // 2) Target: center of Paris
+    const PARIS = { lng: 2.3522, lat: 48.8566 };
+
+    // 3) Create globe with terrain and sky, start far away (whole Earth)
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/standard',    // vector style with 3D support
+      projection: 'globe',                          // show Earth as a globe
+      center: [0, 20],                              // start roughly over the Atlantic
+      zoom: 0.6,                                    // far out = whole Earth
+      pitch: 0,
+      bearing: 0,
+      attributionControl: false,
+      antialias: true
+    });
+
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }));
+
+    map.on('style.load', () => {
+      // Add atmosphere/sky
+      map.setFog({
+        color: 'rgb(186, 210, 235)',
+        'high-color': 'rgb(36, 92, 223)',
+        'space-color': '#02030c',
+        'horizon-blend': 0.1
+      });
+
+      // Add global terrain
+      map.addSource('mapbox-dem', {
+        type: 'raster-dem',
+        url: 'mapbox://mapbox.terrain-rgb',
+        tileSize: 512
+      });
+      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.0 });
+
+      // Add 3D buildings (extrusions) when available
+      // For the "standard" style, enable the 3D layer if present; otherwise add our own.
+      const add3DBuildings = () => {
+        if (map.getLayer('3d-buildings')) return; // some styles already include it
+        map.addLayer({
+          id: '3d-buildings',
+          source: 'composite',
+          'source-layer': 'building',
+          filter: ['==', ['get', 'underground'], 'false'],
+          type: 'fill-extrusion',
+          minzoom: 13,
+          paint: {
+            'fill-extrusion-color': [
+              'interpolate', ['linear'], ['get', 'height'],
+              0, '#d6d6d6',
+              200, '#bfbfbf',
+              400, '#a6a6a6'
+            ],
+            'fill-extrusion-height': [
+              'interpolate', ['linear'], ['zoom'],
+              13, 0,
+              14, ['coalesce', ['get', 'height'], 15]
+            ],
+            'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+            'fill-extrusion-opacity': 0.9
+          }
+        }, findFirstSymbolLayerId());
+      };
+
+      function findFirstSymbolLayerId() {
+        const layers = map.getStyle().layers;
+        for (const l of layers) {
+          if (l.type === 'symbol') return l.id;
+        }
+        return layers[layers.length - 1].id;
+      }
+
+      add3DBuildings();
+
+      // 4) Fly sequence: Earth -> France -> Paris center with tilt and rotate
+      // Step A: small pause to ensure tiles kick in
+      setTimeout(() => {
+        // Step B: fly above France
+        map.flyTo({
+          center: [2.2137, 46.2276], // roughly France center
+          zoom: 4.2,
+          pitch: 30,
+          bearing: 20,
+          speed: 0.5,
+          curve: 1.6,
+          essential: true
+        });
+
+        // Step C: then down to central Paris with more dramatic tilt
+        setTimeout(() => {
+          map.flyTo({
+            center: [PARIS.lng, PARIS.lat],
+            zoom: 14.5,
+            pitch: 70,
+            bearing: 310,
+            speed: 0.6,
+            curve: 1.8,
+            easing: t => t,
+            essential: true
+          });
+        }, 4200); // wait for first leg to complete
+      }, 800);
+    });
+
+    // Optional: add a marker at the center of Paris
+    map.on('load', () => {
+      new mapboxgl.Marker({ color: '#e63946' })
+        .setLngLat([PARIS.lng, PARIS.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 24 }).setText('Paris, France'))
+        .addTo(map);
+    });
+  </script>
+</body>
+</html>
+
