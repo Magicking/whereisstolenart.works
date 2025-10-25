@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>3D Paris Fly-in</title>
+  <title>WhereIsStolenArt.Works</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Mapbox GL JS (3D globe + terrain) -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
@@ -36,15 +36,15 @@
 <body>
   <div class="wrap">
     <div id="map"></div>
-    <div class="credit">Data © OpenStreetMap, © Mapbox</div>
+    <!-- <div class="credit">Data © OpenStreetMap, © Mapbox</div> -->
   </div>
 
   <script>
     // 1) Replace with your Mapbox access token (https://account.mapbox.com/)
     mapboxgl.accessToken = 'pk.eyJ1IjoibWFnaWNraW5nIiwiYSI6ImNtaDZqZGJ5eTBkNXQybHM2aXBjc3M3M2kifQ.QLxS50QqNZ-SWl_hB7naFg';
 
-    // 2) Target: center of Paris
-    const PARIS = { lng: 2.3522, lat: 48.8566 };
+    // 2) Target: center of AERI 2.430736 48.857921  
+    const PARIS = { lng: 2.430736, lat: 48.857921 };
 
     // 3) Create globe with terrain and sky, start far away (whole Earth)
     const map = new mapboxgl.Map({
