@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <title>WhereIsStolenArt.Works</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Mapbox GL JS (3D globe + terrain) -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+  <!-- MapLibre GL JS (OpenFreeMap) -->
+  <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
   <style>
     html, body { height: 100%; margin: 0; background: #0b1020; }
     /* Center the map on the page */
@@ -36,123 +36,51 @@
 <body>
   <div class="wrap">
     <div id="map"></div>
-    <!-- <div class="credit">Data © OpenStreetMap, © Mapbox</div> -->
+    <!-- <div class="credit">Data © OpenStreetMap, © OpenFreeMap</div> -->
   </div>
 
   <script>
-    // 1) Replace with your Mapbox access token (https://account.mapbox.com/)
-    mapboxgl.accessToken = 'pk.eyJ1IjoibWFnaWNraW5nIiwiYSI6ImNtaDZqZGJ5eTBkNXQybHM2aXBjc3M3M2kifQ.QLxS50QqNZ-SWl_hB7naFg';
+    // Target: center of AERI 2.430736 48.857921  
+    const CurrentLocation = { lng: 2.430736, lat: 48.857921 };
 
-    // 2) Target: center of AERI 2.430736 48.857921  
-    const PARIS = { lng: 2.430736, lat: 48.857921 };
-
-    // 3) Create globe with terrain and sky, start far away (whole Earth)
-    const map = new mapboxgl.Map({
+    // Create map with OpenFreeMap style
+    const map = new maplibregl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/standard',    // vector style with 3D support
-      projection: 'globe',                          // show Earth as a globe
-      center: [0, 20],                              // start roughly over the Atlantic
-      zoom: 0.6,                                    // far out = whole Earth
+      style: 'https://tiles.openfreemap.org/styles/liberty',  // OpenFreeMap Liberty style
+      center: [0, 20],                                        // start roughly over the Atlantic
+      zoom: 0.6,                                              // far out = whole Earth
       pitch: 0,
       bearing: 0,
       attributionControl: false,
       antialias: true
     });
 
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }));
+    map.addControl(new maplibregl.AttributionControl({ compact: true }));
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
-    map.on('style.load', () => {
-      // Add atmosphere/sky
-      map.setFog({
-        color: 'rgb(186, 210, 235)',
-        'high-color': 'rgb(36, 92, 223)',
-        'space-color': '#02030c',
-        'horizon-blend': 0.1
-      });
-
-      // Add global terrain
-      map.addSource('mapbox-dem', {
-        type: 'raster-dem',
-        url: 'mapbox://mapbox.terrain-rgb',
-        tileSize: 512
-      });
-      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.0 });
-
-      // Add 3D buildings (extrusions) when available
-      // For the "standard" style, enable the 3D layer if present; otherwise add our own.
-      const add3DBuildings = () => {
-        if (map.getLayer('3d-buildings')) return; // some styles already include it
-        map.addLayer({
-          id: '3d-buildings',
-          source: 'composite',
-          'source-layer': 'building',
-          filter: ['==', ['get', 'underground'], 'false'],
-          type: 'fill-extrusion',
-          minzoom: 13,
-          paint: {
-            'fill-extrusion-color': [
-              'interpolate', ['linear'], ['get', 'height'],
-              0, '#d6d6d6',
-              200, '#bfbfbf',
-              400, '#a6a6a6'
-            ],
-            'fill-extrusion-height': [
-              'interpolate', ['linear'], ['zoom'],
-              13, 0,
-              14, ['coalesce', ['get', 'height'], 15]
-            ],
-            'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
-            'fill-extrusion-opacity': 0.9
-          }
-        }, findFirstSymbolLayerId());
-      };
-
-      function findFirstSymbolLayerId() {
-        const layers = map.getStyle().layers;
-        for (const l of layers) {
-          if (l.type === 'symbol') return l.id;
-        }
-        return layers[layers.length - 1].id;
-      }
-
-      add3DBuildings();
-
-      // 4) Fly sequence: Earth -> France -> Paris center with tilt and rotate
+    map.on('load', () => {
+      // Fly sequence: Earth -> France -> Paris center with tilt and rotate
       // Step A: small pause to ensure tiles kick in
       setTimeout(() => {
         // Step B: fly above France
         map.flyTo({
-          center: [2.2137, 46.2276], // roughly France center
-          zoom: 4.2,
-          pitch: 30,
-          bearing: 20,
-          speed: 0.5,
-          curve: 1.6,
-          essential: true
-        });
-
-        // Step C: then down to central Paris with more dramatic tilt
-        setTimeout(() => {
-          map.flyTo({
-            center: [PARIS.lng, PARIS.lat],
-            zoom: 14.5,
+            center: [CurrentLocation.lng, CurrentLocation.lat],
+            zoom: 18,
             pitch: 70,
             bearing: 310,
-            speed: 0.6,
+            speed: 0.3,
             curve: 1.8,
             easing: t => t,
             essential: true
           });
-        }, 4200); // wait for first leg to complete
       }, 800);
     });
 
     // Optional: add a marker at the center of Paris
     map.on('load', () => {
-      new mapboxgl.Marker({ color: '#e63946' })
-        .setLngLat([PARIS.lng, PARIS.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 24 }).setText('Paris, France'))
+      new maplibregl.Marker({ color: '#e63946' })
+        .setLngLat([CurrentLocation.lng, CurrentLocation.lat])
+        .setPopup(new maplibregl.Popup({ offset: 24 }).setText('Current Location'))
         .addTo(map);
     });
   </script>
